@@ -1,80 +1,58 @@
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+let gameActive = false;
+let currentType = "Gunner";
+
+const charTypes = {
+    Gunner: { damage: 8, knockback: 0.08, color: "#00FF00" },
+    Swordfighter: { damage: 14, knockback: 0.12, color: "#00FFFF" },
+    Brawler: { damage: 22, knockback: 0.18, color: "#FFA500" }
+};
+
+const player = { x: 250, y: 200, w: 30, h: 40, percentage: 0, score: 0 };
+const enemy = { x: 580, y: 200, w: 30, h: 40, color: "#FF3333", percentage: 0, isFlying: false, speedX: 0, speedY: 0 };
+
+function selectCharacter(type) {
+    currentType = type;
+    document.getElementById("menu").style.display = "none";
+    document.getElementById("gameUi").style.display = "block";
+    gameActive = true;
+    gameLoop();
+}
+
 function triggerHit(damage, knockbackFactor, color) {
     enemy.percentage += damage;
     let dir = player.x < enemy.x ? 1 : -1;
     
-    // VEILIGHEID: Zorg dat we altijd met getallen werken
-    let speed = (4 + (enemy.percentage * knockbackFactor)) * 0.65;
-    
-    // FIX: Beperk de snelheid zodat hij niet 'NaN' wordt of buiten beeld vliegt
-    enemy.speedX = dir * Math.max(Math.min(speed, 20), 0); 
-    enemy.speedY = Math.min(-3.5 - (enemy.percentage * 0.02), -2);
-    
+    // CRASH-BEVEILIGING: De bot blijft binnen de 15px per frame
+    let force = (4 + (enemy.percentage * knockbackFactor)) * 0.65;
+    enemy.speedX = dir * Math.min(force, 15);
+    enemy.speedY = -5;
     enemy.isFlying = true;
-    enemy.isGrounded = false;
-
-    hitEffects.push({ x: enemy.x + enemy.w/2, y: enemy.y + enemy.h/2, radius: 45, timer: 10, color: color });
-    spawnParticle(enemy.x + enemy.w/2, enemy.y + enemy.h/2, color, 14, 5);
 }
 
 function update() {
     if (!gameActive) return;
-
-    // CONTROLE: Als bot buiten beeld is of NaN, reset hem
-    if (isNaN(enemy.x) || enemy.x < -100 || enemy.x > 1000) {
-        enemy.x = 450;
-        enemy.y = 200;
-        enemy.speedX = 0;
-        enemy.isFlying = false;
-    }
-
-    if (player.isAttacking > 0) player.isAttacking--;
-
-    // --- SPELER ---
-    let oldPlayerY = player.y;
-    if (player.hitstunt > 0) player.hitstunt--;
-
-    if (player.hitstunt <= 0) {
-        if (keys["ArrowLeft"] || keys["KeyA"]) { player.x -= player.speed; player.facing = -1; }
-        if (keys["ArrowRight"] || keys["KeyD"]) { player.x += player.speed; player.facing = 1; }
-    }
-    player.speedY += gravity; 
-    player.y += player.speedY;
-    player.isGrounded = false;
-    checkPlatformCollision(player, oldPlayerY);
-
-    // --- BOT ---
-    let oldEnemyY = enemy.y;
-    if (!enemy.isFlying) {
-        if (enemy.x < player.x) enemy.x += enemy.speed;
-        else if (enemy.x > player.x) enemy.x -= enemy.speed;
-        
-        // Bot AI: Springen
-        if (player.y < enemy.y - 40 && enemy.isGrounded && Math.random() < 0.07) {
-            enemy.speedY = -12; enemy.isGrounded = false;
-        }
-
-        // Bot aanval
-        if (Math.abs(enemy.x - player.x) < 35 && Math.abs(enemy.y - player.y) < 35) {
-            if (enemy.attackCooldown <= 0) {
-                player.percentage += 20;
-                player.hitstunt = 18;
-                let dir = enemy.x < player.x ? 1 : -1;
-                player.speedY = -7.5; 
-                player.x += dir * Math.min((10 + player.percentage * 0.45), 40);
-                enemy.attackCooldown = 15;
-            }
-        }
-    } else {
+    
+    if (enemy.isFlying) {
         enemy.x += enemy.speedX;
+        enemy.y += enemy.speedY;
         enemy.speedX *= 0.95; 
         if (Math.abs(enemy.speedX) < 0.5) enemy.isFlying = false;
     }
-    
-    if (enemy.attackCooldown > 0) enemy.attackCooldown--;
-    enemy.speedY += gravity; 
-    enemy.y += enemy.speedY;
-    checkPlatformCollision(enemy, oldEnemyY);
+}
 
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = charTypes[currentType].color;
+    ctx.fillRect(player.x, player.y, player.w, player.h);
+    ctx.fillStyle = enemy.color;
+    ctx.fillRect(enemy.x, enemy.y, enemy.w, enemy.h);
+}
+
+function gameLoop() {
+    update();
     draw();
-    requestAnimationFrame(update);
+    if (gameActive) requestAnimationFrame(gameLoop);
 }
