@@ -1,3 +1,4 @@
+alert("De browser kan game.js vinden!");
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
