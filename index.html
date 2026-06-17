@@ -1,22 +1,60 @@
 <!DOCTYPE html>
-<html lang="nl">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Super Smash Shooter</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Cyber Smash</title>
+    <style>
+        body { background: #0b0e14; color: white; text-align: center; font-family: sans-serif; }
+        #gameUi { display: none; }
+        canvas { border: 3px solid #00f0ff; background: #080d16; margin-top: 20px; }
+        button { padding: 15px 30px; font-size: 20px; cursor: pointer; }
+    </style>
 </head>
 <body>
+
     <div id="menu">
-        <h2>CYBER SMASH SHOOTER</h2>
-        <button class="menu-btn" onclick="selectCharacter('Gunner')">🔫 GLITCH-GUNNER</button>
-        <button class="menu-btn" onclick="selectCharacter('Swordfighter')">⚔️ SWORD-FIGHTER</button>
-        <button class="menu-btn" onclick="selectCharacter('Brawler')">🥊 CYBER-BRAWLER</button>
+        <h1>CYBER SMASH</h1>
+        <button onclick="startGame()">START GAME</button>
     </div>
 
     <div id="gameUi">
-        <canvas id="gameCanvas" width="900" height="500"></canvas>
+        <canvas id="gameCanvas" width="800" height="400"></canvas>
     </div>
 
-    <script src="game.js"></script>
+    <script>
+        // Alles staat hier, geen andere bestanden nodig!
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        let gameActive = false;
+
+        const player = { x: 100, y: 300, w: 40, h: 40 };
+        const enemy = { x: 600, y: 300, w: 40, h: 40, speedX: 0 };
+
+        function startGame() {
+            document.getElementById("menu").style.display = "none";
+            document.getElementById("gameUi").style.display = "block";
+            gameActive = true;
+            gameLoop();
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if(e.key === "ArrowLeft") player.x -= 20;
+            if(e.key === "ArrowRight") player.x += 20;
+        });
+
+        function gameLoop() {
+            if (!gameActive) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Teken speler
+            ctx.fillStyle = "#00f0ff";
+            ctx.fillRect(player.x, player.y, player.w, player.h);
+            
+            // Teken bot
+            ctx.fillStyle = "#ff0000";
+            ctx.fillRect(enemy.x, enemy.y, enemy.w, enemy.h);
+            
+            requestAnimationFrame(gameLoop);
+        }
+    </script>
 </body>
 </html>
