@@ -2,12 +2,13 @@
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <title>Super Smash Shooter - Cyber AI Edition</title>
+    <title>Super Smash Shooter - Cyber AI</title>
     <style>
         body { margin: 0; background: #0b0e14; color: white; font-family: 'Segoe UI', sans-serif; text-align: center; overflow: hidden; }
-        canvas { display: block; margin: 10px auto; border: 3px solid #00f0ff; border-radius: 10px; box-shadow: 0 0 30px rgba(0, 240, 255, 0.3); }
-        .menu-btn { background: #1f2d3d; color: white; border: 2px solid #00f0ff; padding: 15px 30px; cursor: pointer; margin: 10px; font-weight: bold; }
-        .menu-btn:hover { box-shadow: 0 0 20px #00f0ff; }
+        #menu { margin-top: 100px; }
+        .menu-btn { background: #1f2d3d; color: white; border: 2px solid #00f0ff; padding: 15px 30px; cursor: pointer; margin: 10px; font-weight: bold; border-radius: 8px; }
+        #gameUi { display: none; }
+        canvas { display: block; margin: 20px auto; border: 3px solid #00f0ff; border-radius: 10px; background: #080d16; }
     </style>
 </head>
 <body>
@@ -19,74 +20,10 @@
         <button class="menu-btn" onclick="selectCharacter('Brawler')">🥊 CYBER-BRAWLER</button>
     </div>
 
-    <div id="gameUi" style="display: none;">
+    <div id="gameUi">
         <canvas id="gameCanvas" width="900" height="500"></canvas>
     </div>
 
-    <script>
-        // --- 1. GAME SETUP ---
-        const canvas = document.getElementById("gameCanvas");
-        const ctx = canvas.getContext("2d");
-        let gameActive = false;
-        let currentType = "Gunner";
-
-        const charTypes = {
-            Gunner: { damage: 8, knockback: 0.08, color: "#00FF00" },
-            Swordfighter: { damage: 14, knockback: 0.12, color: "#00FFFF" },
-            Brawler: { damage: 22, knockback: 0.18, color: "#FFA500" }
-        };
-
-        const player = { x: 250, y: 200, w: 30, h: 40, speed: 5.5, speedY: 0, percentage: 0, score: 0 };
-        const enemy = { x: 580, y: 200, w: 30, h: 40, color: "#FF3333", speed: 3.0, speedY: 0, speedX: 0, percentage: 0, isFlying: false };
-
-        // --- 2. DE "CRASH-FIX" FUNCTIE ---
-        function triggerHit(damage, knockbackFactor, color) {
-            enemy.percentage += damage;
-            let dir = player.x < enemy.x ? 1 : -1;
-            
-            // Hier dwingen we de bot om binnen de lijntjes te blijven
-            let force = (4 + (enemy.percentage * knockbackFactor)) * 0.65;
-            enemy.speedX = dir * Math.min(force, 15); // Max snelheid 15
-            enemy.speedY = -5; // Altijd een sprongetje bij impact
-            enemy.isFlying = true;
-        }
-
-        // --- 3. DE MOTOR ---
-        function update() {
-            if (!gameActive) return;
-            
-            // Beweging bot
-            if (enemy.isFlying) {
-                enemy.x += enemy.speedX;
-                enemy.y += enemy.speedY;
-                enemy.speedX *= 0.95; // Vertraging
-                if (Math.abs(enemy.speedX) < 0.5) enemy.isFlying = false;
-            } else {
-                if (enemy.x < player.x) enemy.x += enemy.speed;
-                else enemy.x -= enemy.speed;
-            }
-
-            draw();
-            requestAnimationFrame(update);
-        }
-
-        function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            // Teken de Cyber-wereld
-            ctx.fillStyle = "#0b0e14"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = charTypes[currentType].color; 
-            ctx.fillRect(player.x, player.y, player.w, player.h); // Speler
-            ctx.fillStyle = enemy.color; 
-            ctx.fillRect(enemy.x, enemy.y, enemy.w, enemy.h); // Bot
-        }
-
-        function selectCharacter(type) {
-            currentType = type;
-            document.getElementById("menu").style.display = "none";
-            document.getElementById("gameUi").style.display = "block";
-            gameActive = true;
-            update();
-        }
-    </script>
+    <script src="game.js"></script>
 </body>
 </html>
