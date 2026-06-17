@@ -2,7 +2,7 @@
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <title>Super Smash Shooter - Double Jump & Smart AI</title>
+    <title>Super Smash Shooter - Boss AI Edition</title>
     <style>
         body {
             margin: 0;
@@ -73,19 +73,22 @@
 </head>
 <body>
 
+    <!-- 1. HOOFDMENU -->
     <div id="menu">
         <h2>SUPER SMASH SHOOTER</h2>
-        <p style="color: #657786;">Kies je vechter. Je kunt nu DUBBEL SPRINGEN in de lucht!</p>
+        <p style="color: #ff3333; font-weight: bold; font-size: 18px;">WAARSCHUWING: DE BOT IS NU INTENS STERK & DEELT HARDE KLAPPEN UIT!</p>
         <button class="menu-btn" style="border-color: #00FF00;" onclick="selectCharacter('Gunner')">🔫 GLITCH-GUNNER</button>
         <button class="menu-btn" style="border-color: #00FFFF;" onclick="selectCharacter('Swordfighter')">⚔️ SWORD-FIGHTER</button>
         <button class="menu-btn" style="border-color: #FFA500;" onclick="selectCharacter('Brawler')">🥊 CYBER-BRAWLER</button>
     </div>
 
+    <!-- 2. SPELSCHERM -->
     <div id="gameUi" style="display: none;">
         <canvas id="gameCanvas" width="900" height="500"></canvas>
-        <p class="controls">Besturing: <b>A / D</b> = Lopen | <b>W</b> = Springen (Druk 2x voor DUBBELE SPRONG!) | <b>Spatiebalk</b> = Aanvallen</p>
+        <p class="controls">Besturing: <b>A / D</b> = Lopen | <b>W</b> = Springen (Druk 2x voor dubbele sprong) | <b>Spatiebalk</b> = Aanvallen</p>
     </div>
 
+    <!-- 3. RESTART MENU -->
     <div id="restartMenu">
         <h2 id="winnerText" style="font-size: 28px; margin-top: 0;">GAME OVER</h2>
         <button class="btn" onclick="backToMenu()">🎮 TERUG NAAR MENU</button>
@@ -99,27 +102,27 @@ const gravity = 0.5;
 let gameActive = false;
 let currentType = "Gunner";
 
+// Jouw eigenschappen (iets verlaagd zodat je de bot niet in 2 klappen doodt)
 const charTypes = {
-    Gunner: { color: "#00FF00", damage: 10, knockback: 0.14, name: "GLITCH-GUNNER" },
-    Swordfighter: { color: "#00FFFF", damage: 18, knockback: 0.24, name: "SWORD-FIGHTER" },
-    Brawler: { color: "#FFA500", damage: 30, knockback: 0.38, name: "CYBER-BRAWLER" }
+    Gunner: { damage: 8, knockback: 0.08, color: "#00FF00" },
+    Swordfighter: { damage: 14, knockback: 0.12, color: "#00FFFF" },
+    Brawler: { damage: 22, knockback: 0.18, color: "#FFA500" }
 };
 
 const platforms = [
-    { x: 150, y: 380, w: 600, h: 30 },  // Vloer eiland
-    { x: 200, y: 240, w: 180, h: 12 },  // Links hoog
-    { x: 520, y: 240, w: 180, h: 12 }   // Rechts hoog
+    { x: 150, y: 380, w: 600, h: 30 },
+    { x: 200, y: 240, w: 180, h: 12 },
+    { x: 520, y: 240, w: 180, h: 12 }
 ];
 
-// Speler heeft nu een 'jumpsLeft' teller gekregen voor de double jump!
 const player = {
     x: 250, y: 200, w: 30, h: 40, speed: 5.5, speedY: 0, isGrounded: false, 
     jumpsLeft: 2, percentage: 0, hitstunt: 0, facing: 1, score: 0, isAttacking: 0
 };
 
-// De Bot heeft nu ook jump logica gekregen
+// De Bot is nu sneller (speed 3.0) en heeft kortere cooldowns
 const enemy = {
-    x: 580, y: 200, w: 30, h: 40, color: "#FF3333", speed: 2.6, speedY: 0, speedX: 0, 
+    x: 580, y: 200, w: 30, h: 40, color: "#FF3333", speed: 3.0, speedY: 0, speedX: 0, 
     isGrounded: false, percentage: 0, isFlying: false, score: 0, attackCooldown: 0
 };
 
@@ -132,24 +135,16 @@ window.addEventListener("keydown", (e) => {
     keys[e.code] = true;
     if (!gameActive) return;
 
-    // --- SPRONG EN DUBBELE SPRONG LOGICA ---
     if ((e.code === "KeyW" || e.code === "ArrowUp") && player.hitstunt <= 0) {
         if (player.isGrounded) {
-            // Eerste sprong vanaf de grond
-            player.speedY = -11.5;
-            player.isGrounded = false;
-            player.jumpsLeft = 1; // Nog 1 sprong over voor in de lucht!
+            player.speedY = -11.5; player.isGrounded = false; player.jumpsLeft = 1;
             spawnParticle(player.x + player.w/2, player.y + player.h, "#00f0ff", 8, 2);
         } else if (player.jumpsLeft > 0) {
-            // DUBBELE SPRONG IN DE LUCHT!
-            player.speedY = -10;
-            player.jumpsLeft = 0; // Geen sprongen meer over tot je de grond raakt
-            // Extra vet deeltjes-effect voor de dubbele sprong
+            player.speedY = -10; player.jumpsLeft = 0;
             spawnParticle(player.x + player.w/2, player.y + player.h, "#FFFF00", 15, 4);
         }
     }
 
-    // Aanvallen met Spatiebalk
     if (e.code === "Space" && player.hitstunt <= 0) {
         player.isAttacking = 8;
         executeAttack();
@@ -185,11 +180,13 @@ function executeAttack() {
     }
 }
 
+// Jouw hit op de bot (de bot heeft nu een 'demper' waardoor hij minder hard wegvliegt)
 function triggerHit(damage, knockbackFactor, color) {
     enemy.percentage += damage;
     let dir = player.x < enemy.x ? 1 : -1;
-    enemy.speedX = dir * (5 + (enemy.percentage * knockbackFactor));
-    enemy.speedY = -4.5 - (enemy.percentage * 0.04); // Vliegt schuin omhoog weg
+    // De bot is 'zwaarder' gemaakt door de vermenigvuldiging met 0.65, hij vliegt dus minder snel ver weg!
+    enemy.speedX = dir * (4 + (enemy.percentage * knockbackFactor)) * 0.65;
+    enemy.speedY = -3.5 - (enemy.percentage * 0.02);
     enemy.isFlying = true;
     enemy.isGrounded = false;
 
@@ -211,15 +208,13 @@ function checkPlatformCollision(obj, oldY) {
     for (let p of platforms) {
         if (obj.x + obj.w > p.x && obj.x < p.x + p.w) {
             if (oldY + obj.h <= p.y && obj.y + obj.h >= p.y) {
-                obj.y = p.y - obj.h;
-                obj.speedY = 0;
-                hitPlatform = true;
+                obj.y = p.y - obj.h; obj.speedY = 0; hitPlatform = true;
             }
         }
     }
     if (hitPlatform) {
         obj.isGrounded = true;
-        if(obj === player) player.jumpsLeft = 2; // Reset dubbele sprong als je landt!
+        if(obj === player) player.jumpsLeft = 2;
     }
 }
 
@@ -228,7 +223,7 @@ function update() {
 
     if (player.isAttacking > 0) player.isAttacking--;
 
-    // --- SPELER BEWEGING ---
+    // --- SPELER ---
     let oldPlayerY = player.y;
     if (player.hitstunt > 0) player.hitstunt--;
 
@@ -240,42 +235,39 @@ function update() {
     player.isGrounded = false;
     checkPlatformCollision(player, oldPlayerY);
 
-    // --- SLIMME EN STERKE BOT LOGICA (AI) ---
+    // --- GEUPLOADE BOSS AI BOT ---
     let oldEnemyY = enemy.y;
     if (!enemy.isFlying) {
-        // 1. Richting bepalen naar de speler toe
         if (enemy.x < player.x) enemy.x += enemy.speed;
         else if (enemy.x > player.x) enemy.x -= enemy.speed;
 
-        // 2. SLIM SPRINGEN: Als jij op een hoger platform staat, snapt de bot dat hij moet springen!
-        if (player.y < enemy.y - 40 && enemy.isGrounded && Math.random() < 0.05) {
-            enemy.speedY = -12; // De bot springt omhoog naar jouw platform!
-            enemy.isGrounded = false;
+        if (player.y < enemy.y - 40 && enemy.isGrounded && Math.random() < 0.07) {
+            enemy.speedY = -12; enemy.isGrounded = false;
         }
         
-        // Soms springt de bot ook willekeurig om aanvallen te ontwijken
-        if (Math.abs(enemy.x - player.x) < 150 && enemy.isGrounded && Math.random() < 0.01) {
+        if (Math.abs(enemy.x - player.x) < 150 && enemy.isGrounded && Math.random() < 0.02) {
             enemy.speedY = -11; enemy.isGrounded = false;
         }
 
-        // 3. STERKE AANVAL: Als de bot dichtbij is en zijn cooldown is voorbij, valt hij keihard aan
-        if (Math.abs(enemy.x - player.x) < 32 && Math.abs(enemy.y - player.y) < 35) {
+        // AANVAL VAN DE BOT OP JOU (Super sterk gemaakt!)
+        if (Math.abs(enemy.x - player.x) < 35 && Math.abs(enemy.y - player.y) < 35) {
             if (enemy.attackCooldown <= 0) {
-                player.percentage += 16; 
-                player.hitstunt = 14; // Je bent langer verlamd door zijn sterke klap!
+                player.percentage += 20; // Deelt direct 20% schade uit per klap!
+                player.hitstunt = 18; // Je bent flink lang verlamd
+                
                 let dir = enemy.x < player.x ? 1 : -1;
-                player.speedY = -5.5; // Lanceert je ook omhoog
-                player.x += dir * (5 + player.percentage * 0.16); // Hardere knockback van de bot!
+                // ENORME DUW KRACHT (KNOCKBACK): De bot duwt jou nu KEIHARD weg!
+                player.speedY = -7.5; 
+                player.x += dir * (10 + player.percentage * 0.45); // Gigantische duw-factor (0.45)
                 
-                hitEffects.push({ x: player.x + player.w/2, y: player.y + player.h/2, radius: 30, timer: 8, color: "#FF3333" });
-                spawnParticle(player.x + player.w/2, player.y + player.h/2, "#FF3333", 10, 4);
+                hitEffects.push({ x: player.x + player.w/2, y: player.y + player.h/2, radius: 55, timer: 12, color: "#FF3333" });
+                spawnParticle(player.x + player.w/2, player.y + player.h/2, "#FF3333", 15, 6);
                 
-                enemy.attackCooldown = 25; // Tijd tussen zijn combo's
+                enemy.attackCooldown = 15; // Korte cooldown, hij start meteen een nieuwe combo!
             }
         }
     } else {
-        // Als de bot weggeslagen is, remt hij langzaam af
-        enemy.x += enemy.speedX; enemy.speedX *= 0.96;
+        enemy.x += enemy.speedX; enemy.speedX *= 0.97; // Bot remt iets trager af in de lucht
         if (Math.abs(enemy.speedX) > 2) spawnParticle(enemy.x + enemy.w/2, enemy.y + enemy.h/2, "#FF5555", 1, 1);
         if (Math.abs(enemy.speedX) < 0.2) enemy.isFlying = false;
     }
@@ -296,7 +288,7 @@ function update() {
         if (b.x > canvas.width || b.x < -20) bullets.splice(i, 1);
     }
 
-    // Effecten updaten
+    // Effecten
     for(let i = particles.length - 1; i >= 0; i--) {
         let p = particles[i]; p.x += p.vx; p.y += p.vy; p.life--; p.alpha = p.life / 20;
         if(p.life <= 0) particles.splice(i, 1);
@@ -305,7 +297,7 @@ function update() {
         hitEffects[i].timer--; if(hitEffects[i].timer <= 0) hitEffects.splice(i, 1);
     }
 
-    // --- NAAR DE RAND GEFLITST? RING OUT! ---
+    // --- ARENA GRENZEN ---
     if (enemy.x > canvas.width + 60 || enemy.x < -90 || enemy.y > canvas.height + 60) {
         player.score++; endRound("JIJ HEBT GEWONNEN! 🎉");
     }
@@ -339,25 +331,21 @@ function gameLoop() {
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // 1. Ruimte achtergrond
     let gradient = ctx.createRadialGradient(canvas.width/2, canvas.height/2, 50, canvas.width/2, canvas.height/2, 500);
     gradient.addColorStop(0, '#161f30'); gradient.addColorStop(1, '#080d16');
     ctx.fillStyle = gradient; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // 2. Neon eiland platformen
     for (let p of platforms) {
         ctx.fillStyle = "#22303f"; ctx.fillRect(p.x, p.y, p.w, p.h);
         ctx.fillStyle = "#00f0ff"; ctx.fillRect(p.x, p.y, p.w, 4);
     }
 
-    // 3. Deeltjes/Explosies tekenen
     for(let p of particles) {
         ctx.save(); ctx.globalAlpha = p.alpha; ctx.fillStyle = p.color;
         ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI*2); ctx.fill();
         ctx.restore();
     }
 
-    // 4. Speler met wapen-tekeningen
     let col = charTypes[currentType].color;
     ctx.fillStyle = col; ctx.fillRect(player.x, player.y, player.w, player.h);
 
@@ -390,14 +378,12 @@ function draw() {
         }
     }
 
-    // Tegenstander (Rode bot met gemene ogen)
+    // Tegenstander
     ctx.fillStyle = enemy.color; ctx.fillRect(enemy.x, enemy.y, enemy.w, enemy.h);
     ctx.fillStyle = "#FFF"; ctx.fillRect(enemy.x + (enemy.x <= player.x ? 18 : 4), enemy.y + 8, 8, 4);
 
-    // Laserkogels
     for (let b of bullets) { ctx.fillStyle = b.color; ctx.fillRect(b.x, b.y, b.w, b.h); }
 
-    // 5. Explosie ringen (BOOM!)
     for (let h of hitEffects) {
         ctx.save(); ctx.globalAlpha = h.timer / 10; ctx.fillStyle = h.color;
         ctx.beginPath(); ctx.arc(h.x, h.y, h.radius * (1 - h.timer/10), 0, Math.PI*2); ctx.fill();
@@ -406,7 +392,7 @@ function draw() {
         ctx.restore();
     }
 
-    // 6. UI Health en Scorebars
+    // UI
     ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.fillRect(40, 20, 260, 40);
     ctx.strokeStyle = col; ctx.strokeRect(40, 20, 260, 40);
     ctx.fillStyle = "#FFF"; ctx.font = "bold 13px sans-serif";
