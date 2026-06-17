@@ -406,6 +406,15 @@ function draw() {
     ctx.fillText(`BOT (${enemy.score} WINS)`, 615, 45);
     ctx.fillStyle = enemy.color; ctx.font = "bold 18px sans-serif";
     ctx.fillText(`${enemy.percentage}%`, 805, 46);
+
+    <div id="restartMenu">
+        <h2 id="winnerText" style="font-size: 28px; margin-top: 0;">GAME OVER</h2>
+        <button class="btn" onclick="backToMenu()">🎮 TERUG NAAR MENU</button>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
 }
 </script>
 
