@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <title>Super Smash Shooter!</title>
+    <style>
+        body {
+            margin: 0;
+            background: #222;
+            color: white;
+            font-family: sans-serif;
+            text-align: center;
+        }
+        canvas {
+            background: #333;
+            display: block;
+            margin: 20px auto;
+            border: 4px solid #fff;
+            box-shadow: 0px 0px 20px rgba(255, 255, 255, 0.2);
+        }
+        h1 { margin-bottom: 5px; }
+        p { margin-top: 0; color: #aaa; }
+    </style>
+</head>
+<body>
+
+    <h1>Super Smash Shooter</h1>
+    <p>Besturing: <b>A/D</b> of <b>Pijltjes</b> om te lopen | <b>Spatiebalk</b> om te schieten</p>
+
+    <canvas id="gameCanvas" width="800" height="400"></canvas>
+
+<script>
+// --- 1. SPELINSTELLINGEN EN CANVAS ---
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+// De vloer waar iedereen op staat
+const groundY = 320;
+
+// --- 2. DE SPELER ---
+const player = {
+    x: 100,
+    y: groundY - 40, // 40 pixels hoog
+    width: 30,
+    height: 40,
+    color: "#00FF00", // Groen
+    speed: 5
+};
+
+// --- 3. DE VIJAND ---
+const enemy = {
+    x: 600,
+    y: groundY - 40,
+    width: 30,
+    height: 40,
+    color: "#FF0000", // Rood
+    percentage: 0,    // Begint op 0%
+    speedX: 0,        // Snelheid waarmee hij wegvliegt
+    isFlying: false
+};
+
+// --- 4. KOGELS EN TOETSEN ---
+let bullets = [];
+let keys = {};
+
+// Luisteren naar toetsenborden
+window.addEventListener("keydown", (e) => keys[e.code] = true);
+window.addEventListener("keyup", (e) => keys[e.code] = false);
+
+// Schieten als je op de spatiebalk drukt
+window.addEventListener("keydown", (e) => {
+    if (e.code === "Space") {
+        bullets.push({
+            x: player.x + player.width,
+            y: player.y + 15,
+            width: 10,
+            height: 5,
+            speed: 10
+        });
+    }
+});
+
+// --- 5. DE GAME LOOP (HET SPEL DAT DRAAIT) ---
+function gameLoop() {
+    update();
+    draw();
+    requestAnimationFrame(gameLoop); // Zorgt dat het spel blijft herhalen
+}
+
+// --- 6. LOGICA (BEWEGING EN BOTSINGEN) ---
+function update() {
+    // Speler bewegen
+    if (keys["ArrowLeft"] || keys["KeyA"]) {
+        player.x -= player.speed;
+    }
+    if (keys["ArrowRight"] || keys["KeyD"]) {
+        player.x += player.speed;
+    }
+
+    // Kogels bewegen
+    for (let i = bullets.length - 1; i >= 0; i--) {
+        let b = bullets[i];
+        b.x += b.speed;
+
+        // Kogel raakt de vijand?
+        if (b.x < enemy.x + enemy.width &&
+            b.x + b.width > enemy.x &&
+            b.y < enemy.y + enemy.height &&
+            b.y + b.height > enemy.y) {
+            
+            // Vijand krijgt schade erbij!
+            enemy.percentage += 25; 
+            
+            // Bereken de klap (knockback) op basis van het percentage!
+            // Hoe hoger het %, hoe groter de speedX wordt.
+            enemy.speedX = 2 + (enemy.percentage * 0.15); 
+            enemy.isFlying = true;
+
+            // Kogel weghalen uit het spel
+            bullets.splice(i, 1);
+            continue;
+        }
+
+        // Kogel buiten het scherm weghalen
+        if (b.x > canvas.width) {
+            bullets.splice(i, 1);
+        }
+    }
+
+    // Als de vijand is geraakt, vliegt hij naar rechts
+    if (enemy.isFlying) {
+        enemy.x += enemy.speedX;
+        // Vertragen door 'wrijving' zodat hij uiteindelijk stopt
+        enemy.speedX *= 0.95; 
+        
+        if (enemy.speedX < 0.1) {
+            enemy.isFlying = false;
+            enemy.speedX = 0;
+        }
+    }
+
+    // Respawn de vijand als hij van het scherm wordt geslagen!
+    if (enemy.x > canvas.width) {
+        enemy.x = 400 + Math.random() * 200; // Ergens in het midden/rechts
+        enemy.percentage = 0; // Reset percentage naar 0%
+    }
+    
+    // Zorg dat de speler niet van het scherm loopt
+    if (player.x < 0) player.x = 0;
+    if (player.x > canvas.width - player.width) player.x = canvas.width - player.width;
+}
+
+// --- 7. TEKENEN OP HET SCHERM ---
+function draw() {
+    // Scherm leegmaken
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // De vloer tekenen
+    ctx.fillStyle = "#555";
+    ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+
+    // De speler tekenen (Groen)
+    ctx.fillStyle = player.color;
+    ctx.fillRect(player.x, player.y, player.width, player.height);
+
+    // De vijand tekenen (Rood)
+    ctx.fillStyle = enemy.color;
+    ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+
+    // De kogels tekenen (Geel)
+    ctx.fillStyle = "#FFFF00";
+    for (let b of bullets) {
+        ctx.fillRect(b.x, b.y, b.width, b.height);
+    }
+
+    // De %-tekst boven de vijand tekenen
+    ctx.fillStyle = "#FFF";
+    ctx.font = "bold 16px sans-serif";
+    ctx.fillText(enemy.percentage + "%", enemy.x - 5, enemy.y - 10);
+}
+
+// Start het spel!
+gameLoop();
+</script>
+
+</body>
+</html>
